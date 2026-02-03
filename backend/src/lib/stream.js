@@ -11,19 +11,21 @@ if(!apiKey || !apiSecret){
 
 export const chatClient = StreamChat.getInstance(apiKey, apiSecret);
 
-export const upsertStreamUser = async(userData) => {
-    try{
-console.log("Upserting to Stream...");
-
-await chatClient.upsertUser(userData)
-console.log("Stream user Upserted Successfully", userData)
-    }catch(error){
-console.error("Error Upserting Stream user", error)
+// stream.js
+export const upsertStreamUser = async (userData) => {
+    // Ensure client is ready
+    const client = StreamChat.getInstance(apiKey, apiSecret); 
+    try {
+        const response = await client.upsertUser(userData);
+        console.log("Stream response:", response); // Log the actual response
+        return response;
+    } catch (error) {
+        console.error("Stream API Error:", error.message, error.stack);
+        throw error; // Rethrow so Inngest knows to retry
     }
+};
 
-}
-
-export const deleteStreamUser = async(userId) => {
+export const deleteStreamUser = async (userId) => {
     try{
 await chatClient.deleteUser(userId)
 console.log("Stream user Deleted ", userId)
