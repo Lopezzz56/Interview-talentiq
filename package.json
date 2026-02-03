@@ -15,6 +15,9 @@
     "type": "git",
     "url": "git+https://github.com/Lopezzz56/Interview-talentiq.git"
   },
+  "optionalDependencies": {
+  "@rollup/rollup-linux-x64-gnu": "4.6.1"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
