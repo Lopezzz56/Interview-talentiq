@@ -8,26 +8,47 @@ export const inngest = new Inngest({ id: "talent-iq" });
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
   { event: "clerk/user.created" },
-  async ({ event }) => {
+  async ({ event, step }) => { // 1. Added 'step' here
     await connectDB();
 
     const { id, email_addresses, first_name, last_name, image_url } = event.data;
+    const email = email_addresses[0]?.email_address;
+    const name = `${first_name || ""} ${last_name || ""}`;
 
-    const newUser = {
-      clerkId: id,
-      email: email_addresses[0]?.email_address,
-      name: `${first_name || ""} ${last_name || ""}`,
-      profileImage: image_url,
-    };
+    // 2. Sync to Database first
+    const user = await step.run("sync-to-db", async () => {
+      return await User.findOneAndUpdate(
+        { clerkId: id },
+        {
+          clerkId: id,
+          email,
+          name,
+          profileImage: image_url,
+        },
+        { upsert: true, new: true } // Use upsert for idempotency
+      );
+    });
 
-    await User.create(newUser);
-    await upsertStreamUser({
-        id: newUser.clerkId.toString(),
-        name: newUser.name,
-        image: newUser.profileImage
-    })
+    // 3. Sync to Stream
+    await step.run("sync-to-stream", async () => {
+      await upsertStreamUser({
+        id: id.toString(),
+        name,
+        image: image_url
+      });
+    });
+
+    // 4. Send Welcome Email last
+await step.run("send-welcome-email", async () => {
+  return await sendEmail(
+    email,
+    "Welcome!",
+    `<div><h1>Welcome to Talent IQ, ${first_name}</h1></div>` // Use backticks and ${}
+  );
+});
   }
 );
+
 
 const deleteUserFromDB = inngest.createFunction(
   { id: "delete-user-from-db" },

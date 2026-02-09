@@ -6,15 +6,25 @@ import { connectDB } from "./lib/db.js";
 import cors from "cors";
 import {serve} from "inngest/express"
 import { inngest, functions} from "./lib/inngest.js";
+import { clerkMiddleware } from '@clerk/express'
+import { protectRoute } from "./middleware/protectRoute.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
+
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
+app.use(clerkMiddleware()); // adds adds Auth field to request object req.auth()
 
 // Routes
 app.use("/api/inngest", serve({ client: inngest, functions }));
-app.get("/health", (req, res) => res.status(200).json({ msg: "success" }));
+app.get("/api/chat", chatRoutes);
+app.get("/api/sessions", sessionRoutes);
+
+//When you pass array of middleware to expres it automaticlaly flatterns and executes them sequentially onebyone
+app.get("/video-calls", protectRoute, (req, res) => res.status(200).json({ msg: "Video Call ended" }));
 
 
 // 🟢 WRAP THE STARTUP LOGIC
